@@ -1,16 +1,20 @@
-# pip install openai streamlit python-dotenv
+# pip install openai streamlit
 
 import streamlit as st
 from openai import OpenAI
-from dotenv import load_dotenv
-import os
 
-# ---------- Load environment variables ----------
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
+# ---------- Page Config ----------
+st.set_page_config(page_title="Python Chat Assistant", page_icon="🤖")
 
+# ---------- Load API Key from Streamlit Secrets ----------
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("OpenAI API key not found in Streamlit secrets.")
+    st.stop()
+
+api_key = st.secrets["OPENAI_API_KEY"]
 client = OpenAI(api_key=api_key)
 
+# ---------- System Prompt ----------
 SYSTEM_PROMPT = """
 You are a friendly assistant.
 
@@ -20,25 +24,23 @@ Rules:
 - Plain text only.
 """
 
-# ---------- Streamlit GUI ----------
-st.set_page_config(page_title="Python Chat Assistant", page_icon="🤖")
-
+# ---------- UI ----------
 st.title("🤖 Sam BotBuddy")
 st.write("Ask me any question, I will try to answer.")
 
-# ---------- Initialize session state ----------
+# ---------- Initialize Chat History ----------
 if "messages" not in st.session_state:
     st.session_state.messages = [
         {"role": "system", "content": SYSTEM_PROMPT}
     ]
 
-# ---------- Display previous chat messages ----------
+# ---------- Display Previous Messages ----------
 for message in st.session_state.messages:
     if message["role"] != "system":
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
-# ---------- Chat input ----------
+# ---------- Chat Input ----------
 user_input = st.chat_input("Type your message...")
 
 if user_input:
@@ -50,7 +52,7 @@ if user_input:
     with st.chat_message("user"):
         st.markdown(user_input)
 
-    # Get AI response with full history
+    # Generate AI response
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=st.session_state.messages,
